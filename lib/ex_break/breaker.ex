@@ -18,6 +18,17 @@ defmodule ExBreak.Breaker do
 
   defstruct break_count: 0, tripped: false, tripped_at: nil
 
+  @doc false
+  use Agent, restart: :temporary
+
+  @doc """
+  Start a new breaker.
+  """
+  @spec start_link(Keyword.t()) :: Agent.on_start()
+  def start_link(_opts) do
+    Agent.start_link(fn -> new() end)
+  end
+
   @doc """
   Create a new circuit breaker.
   """
@@ -32,22 +43,19 @@ defmodule ExBreak.Breaker do
   If the new break count exceeds the given threshold, the breaker is also
   marked as tripped.
 
-      iex> breaker = ExBreak.Breaker.new()
-      iex> breaker = ExBreak.Breaker.increment(breaker, 10)
-      iex> {breaker.break_count, breaker.tripped}
-      {1, false}
-
-      iex> breaker = ExBreak.Breaker.new()
-      iex> breaker = ExBreak.Breaker.increment(breaker, 1)
-      iex> {breaker.break_count, breaker.tripped}
-      {1, true}
+      iex> {:ok, pid} = ExBreak.Breaker.start_link([])
+      iex> ExBreak.Breaker.increment(pid, 10)
+      iex> ExBreak.Breaker.is_tripped(pid, 60)
+      false
   """
-  @spec increment(t, pos_integer) :: t
-  def increment(breaker, threshold) do
-    break_count = breaker.break_count + 1
-    tripped = break_count >= threshold
-    tripped_at = if tripped, do: DateTime.utc_now()
-    Map.merge(breaker, %{break_count: break_count, tripped: tripped, tripped_at: tripped_at})
+  @spec increment(pid, pos_integer) :: :ok
+  def increment(pid, threshold) do
+    Agent.update(pid, fn breaker ->
+      break_count = breaker.break_count + 1
+      tripped = break_count >= threshold
+      tripped_at = if tripped, do: DateTime.utc_now()
+      Map.merge(breaker, %{break_count: break_count, tripped: tripped, tripped_at: tripped_at})
+    end)
   end
 
   @doc """
@@ -56,28 +64,30 @@ defmodule ExBreak.Breaker do
   The second argument, timeout_sec, is the time that must pass for a tripped
   circuit breaker to re-open.
 
-      iex> breaker = ExBreak.Breaker.new()
-      iex> breaker = ExBreak.Breaker.increment(breaker, 10)
-      iex> ExBreak.Breaker.is_tripped(breaker, 10)
+      iex> {:ok, pid} = ExBreak.Breaker.start_link([])
+      iex> ExBreak.Breaker.increment(pid, 10)
+      iex> ExBreak.Breaker.is_tripped(pid, 10)
       false
 
-      iex> breaker = ExBreak.Breaker.new()
-      iex> breaker = ExBreak.Breaker.increment(breaker, 1)
-      iex> ExBreak.Breaker.is_tripped(breaker, 10)
+      iex> {:ok, pid} = ExBreak.Breaker.start_link([])
+      iex> ExBreak.Breaker.increment(pid, 1)
+      iex> ExBreak.Breaker.is_tripped(pid, 10)
       true
 
-      iex> breaker = ExBreak.Breaker.new()
-      iex> breaker = ExBreak.Breaker.increment(breaker, 1)
-      iex> ExBreak.Breaker.is_tripped(breaker, 0)
+      iex> {:ok, pid} = ExBreak.Breaker.start_link([])
+      iex> ExBreak.Breaker.increment(pid, 1)
+      iex> ExBreak.Breaker.is_tripped(pid, 0)
       false
   """
-  @spec is_tripped(t, pos_integer) :: boolean
-  def is_tripped(breaker = %__MODULE__{tripped: true}, timeout_sec) do
-    DateTime.diff(DateTime.utc_now(), breaker.tripped_at, :second) < timeout_sec
-  end
-
-  def is_tripped(_, _) do
-    false
+  @spec is_tripped(pid, pos_integer) :: boolean
+  def is_tripped(pid, timeout_sec) do
+    Agent.get(pid, fn breaker ->
+      if breaker.tripped do
+        DateTime.diff(DateTime.utc_now(), breaker.tripped_at, :second) < timeout_sec
+      else
+        false
+      end
+    end)
   end
 
   @doc """
@@ -85,16 +95,18 @@ defmodule ExBreak.Breaker do
 
   If the circuit breaker is not tripped, it is simply returned.
 
-      iex> breaker = ExBreak.Breaker.new()
-      iex> breaker = ExBreak.Breaker.increment(breaker, 1)
-      iex> ExBreak.Breaker.is_tripped(breaker, 10)
+      iex> {:ok, pid} = ExBreak.Breaker.start_link([])
+      iex> ExBreak.Breaker.increment(pid, 1)
+      iex> ExBreak.Breaker.is_tripped(pid, 10)
       true
-      iex> breaker = ExBreak.Breaker.reset_tripped(breaker)
-      iex> ExBreak.Breaker.is_tripped(breaker, 10)
+      iex> ExBreak.Breaker.reset_tripped(pid)
+      iex> ExBreak.Breaker.is_tripped(pid, 10)
       false
   """
-  @spec reset_tripped(t) :: t
-  def reset_tripped(breaker) do
-    if breaker.tripped, do: new(), else: breaker
+  @spec reset_tripped(pid) :: :ok
+  def reset_tripped(pid) do
+    Agent.update(pid, fn breaker ->
+      if breaker.tripped, do: new(), else: breaker
+    end)
   end
 end
