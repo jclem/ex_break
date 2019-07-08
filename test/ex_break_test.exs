@@ -26,7 +26,6 @@ defmodule ExBreakTest do
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
     end
 
-    @tag :focus
     test "returns a breaker error when a breaker is tripped", %{fun: fun, opts: opts} do
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
