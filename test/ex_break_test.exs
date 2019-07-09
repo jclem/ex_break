@@ -2,11 +2,6 @@ defmodule ExBreakTest do
   use ExUnit.Case
   doctest ExBreak
 
-  setup do
-    start_supervised({ExBreak, name: ExBreak})
-    :ok
-  end
-
   defmodule TestModule do
     def test(value) do
       value
@@ -14,7 +9,7 @@ defmodule ExBreakTest do
   end
 
   setup do
-    %{fun: fn ret -> ret end, opts: [threshold: 2, timeout_sec: 10]}
+    %{opts: [threshold: 2, timeout_sec: 10]}
   end
 
   describe ".call/1" do
@@ -22,23 +17,26 @@ defmodule ExBreakTest do
       assert ExBreak.call(fn -> :fn_called end, [], opts) == :fn_called
     end
 
-    test "returns the function error", %{fun: fun, opts: opts} do
+    test "returns the function error", %{opts: opts} do
+      fun = fn ret -> ret end
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
     end
 
-    test "returns a breaker error when a breaker is tripped", %{fun: fun, opts: opts} do
+    test "returns a breaker error when a breaker is tripped", %{opts: opts} do
+      fun = fn ret -> ret end
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :circuit_closed}
     end
 
-    test "resets after the breaker timeout", %{fun: fun, opts: opts} do
+    test "resets after the breaker timeout", %{opts: opts} do
+      fun = fn ret -> ret end
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :circuit_closed}
-      GenServer.call(ExBreak, {:rewind_trip, fun, 15})
+      ExBreak.rewind_trip(fun, 15)
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
-      breaker = ExBreak |> GenServer.call(:get_state) |> ExBreak.State.get(fun)
+      breaker = ExBreak.Registry.get_breaker(fun) |> elem(1) |> Agent.get(& &1)
       refute breaker.tripped
     end
   end

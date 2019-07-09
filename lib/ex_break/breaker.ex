@@ -18,7 +18,6 @@ defmodule ExBreak.Breaker do
 
   defstruct break_count: 0, tripped: false, tripped_at: nil
 
-  @doc false
   use Agent, restart: :temporary
 
   @doc """
