@@ -35,8 +35,17 @@ defmodule ExBreak do
   - `threshold` (default `10`) The number of times an error is permitted
   before further calls will be ignored and will return an `{:error,
   :circuilt_closed}`
+  - `match_exception` (default `fn _ -> true end`) A function called when an
+  exception is raised during the function call. If it returns true, the
+  breaker trip count is incremented.
+  - `match_return` (defaults to return `true` when matching `{:error, _}`) A
+  function called on the return value of the function. If it returns `true`,
+  the breaker trip count is incremented.
 
   ## Example
+
+  This simple example increments the breaker when the return value is
+  `{:error, _}`:
 
       iex> ExBreak.call(fn ret -> ret end, [:ok])
       :ok
@@ -47,6 +56,27 @@ defmodule ExBreak do
       iex> ExBreak.call(fun, [], threshold: 2)
       {:error, :fail}
       iex> ExBreak.call(fun, [], threshold: 2)
+      {:error, :circuit_breaker_tripped}
+
+  In this example, we only increment when the return value is exactly
+  `{:error, :bad}`:
+
+      iex> fun = fn ret -> ret end
+      iex> opts = [threshold: 2, match_return: fn
+      ...>     {:error, :bad} -> true
+      ...>     _ -> false
+      ...>  end]
+      iex> ExBreak.call(fun, [{:error, :not_bad}], opts)
+      {:error, :not_bad}
+      iex> ExBreak.call(fun, [{:error, :not_bad}], opts)
+      {:error, :not_bad}
+      iex> ExBreak.call(fun, [{:error, :not_bad}], opts)
+      {:error, :not_bad}
+      iex> ExBreak.call(fun, [{:error, :bad}], opts)
+      {:error, :bad}
+      iex> ExBreak.call(fun, [{:error, :bad}], opts)
+      {:error, :bad}
+      iex> ExBreak.call(fun, [{:error, :bad}], opts)
       {:error, :circuit_breaker_tripped}
   """
   @spec call(function, [any], opts) :: any
@@ -83,14 +113,27 @@ defmodule ExBreak do
   end
 
   defp call_func(fun, args, opts) do
-    case apply(fun, args) do
-      {:error, err} ->
-        increment_breaker(fun, opts)
-        {:error, err}
+    match_exception = Keyword.get(opts, :match_exception, fn _ -> true end)
+    match_return = Keyword.get(opts, :match_return, fn ret -> match?({:error, _}, ret) end)
 
-      value ->
-        reset_breaker(fun)
-        value
+    try do
+      apply(fun, args)
+    rescue
+      exception ->
+        if match_exception.(exception) do
+          increment_breaker(fun, opts)
+        end
+
+        reraise exception, __STACKTRACE__
+    else
+      return ->
+        if match_return.(return) do
+          increment_breaker(fun, opts)
+          return
+        else
+          reset_breaker(fun)
+          return
+        end
     end
   end
 

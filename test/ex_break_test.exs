@@ -39,5 +39,38 @@ defmodule ExBreakTest do
       breaker = ExBreak.Registry.get_breaker(fun) |> elem(1) |> Agent.get(& &1)
       refute breaker.tripped
     end
+
+    test "increments on raised errors when not configure to", %{opts: opts} do
+      fun = fn -> raise "Oops" end
+      assert_raise RuntimeError, "Oops", fn -> ExBreak.call(fun, [], opts) end
+      assert_raise RuntimeError, "Oops", fn -> ExBreak.call(fun, [], opts) end
+      assert ExBreak.call(fun, [], opts) == {:error, :circuit_breaker_tripped}
+    end
+
+    test "increments on raised errors when configure to", %{opts: opts} do
+      opts =
+        Keyword.put(opts, :match_exception, fn
+          %RuntimeError{} -> true
+          _ -> false
+        end)
+
+      fun = fn -> raise "Oops" end
+      assert_raise RuntimeError, "Oops", fn -> ExBreak.call(fun, [], opts) end
+      assert_raise RuntimeError, "Oops", fn -> ExBreak.call(fun, [], opts) end
+      assert ExBreak.call(fun, [], opts) == {:error, :circuit_breaker_tripped}
+    end
+
+    test "can handle pattern matches", %{opts: opts} do
+      opts =
+        Keyword.put(opts, :match_return, fn
+          {:ok, _} -> true
+          _ -> false
+        end)
+
+      fun = fn -> {:ok, "foo"} end
+      assert ExBreak.call(fun, [], opts) == {:ok, "foo"}
+      assert ExBreak.call(fun, [], opts) == {:ok, "foo"}
+      assert ExBreak.call(fun, [], opts) == {:error, :circuit_breaker_tripped}
+    end
   end
 end
