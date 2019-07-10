@@ -18,6 +18,10 @@ defmodule ExBreak.Registry do
 
   @doc """
   Look up a breaker, and create one if it does not exist.
+
+  TODO: get_breaker/1 is a potential bottleneck, because it's the same
+  GenServer call where we lookup all breakers. An ETS table isn't an option
+  right now because we need get-or-create functionality.
   """
   @spec get_breaker(function) :: {:ok, pid} | {:error, any}
   def get_breaker(key) do
