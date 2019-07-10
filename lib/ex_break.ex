@@ -25,7 +25,7 @@ defmodule ExBreak do
   breaker for that function is marked as tripped.
 
   If the function fails and the circuit breaker for that function has been
-  marked as tripped (and has not expired), then `{:error, :circuit_closed}`
+  marked as tripped (and has not expired), then `{:error, :circuit_breaker_tripped}`
   will be returned.
 
   A list of options can be provided as the final argument to `call`:
@@ -47,7 +47,7 @@ defmodule ExBreak do
       iex> ExBreak.call(fun, [], threshold: 2)
       {:error, :fail}
       iex> ExBreak.call(fun, [], threshold: 2)
-      {:error, :circuit_closed}
+      {:error, :circuit_breaker_tripped}
   """
   @spec call(function, [any], opts) :: any
   def call(fun, args \\ [], opts \\ []) do
@@ -55,7 +55,7 @@ defmodule ExBreak do
 
     lookup(fun, fn pid ->
       if Breaker.is_tripped(pid, opts[:timeout_sec]) do
-        {:error, :circuit_closed}
+        {:error, :circuit_breaker_tripped}
       else
         Breaker.reset_tripped(pid)
         call_func(fun, args, opts)

@@ -26,14 +26,14 @@ defmodule ExBreakTest do
       fun = fn ret -> ret end
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
-      assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :circuit_closed}
+      assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :circuit_breaker_tripped}
     end
 
     test "resets after the breaker timeout", %{opts: opts} do
       fun = fn ret -> ret end
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
-      assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :circuit_closed}
+      assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :circuit_breaker_tripped}
       ExBreak.rewind_trip(fun, 15)
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
       breaker = ExBreak.Registry.get_breaker(fun) |> elem(1) |> Agent.get(& &1)
