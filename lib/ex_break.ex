@@ -5,7 +5,11 @@ defmodule ExBreak do
 
   alias ExBreak.Breaker
 
-  @type opt :: {:timeout_sec, pos_integer} | {:threshold, pos_integer}
+  @type opt ::
+          {:timeout_sec, pos_integer}
+          | {:threshold, pos_integer}
+          | {:match_exception, (any -> boolean)}
+          | {:match_return, (any -> boolean)}
   @type opts :: [opt]
 
   @default_opts [timeout_sec: 60 * 15, threshold: 10]
