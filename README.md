@@ -2,9 +2,7 @@
 
 ExBreak is a circuit breaker implementation for Elixir.
 
-When making function calls that may fail, you may find that you want to stop
-making those calls for a period of time after an error threshold is hit. This
-package provides a way to do that.
+When making function calls that may fail, you may find that you want to stop making those calls for a period of time after an error threshold is hit. This package provides a way to do that.
 
 ```elixir
 defmodule GitHub do
@@ -32,10 +30,40 @@ defmodule GitHub do
 end
 ```
 
+It is also possible to have more fine-grained control over when a circuit breaker's trip counter is incremented. For example, to ensure that only `RuntimeError`s increment the counter, but not other exceptions, the `match_exception` option can be used.
+
+The `match_exception` option is a function that will be called with the exception. If it returns `true`, the trip counter will be incremented when an exception occurs. Otherwise, it will not.
+
+```elixir
+ExBreak.call(
+  &do_get/2,
+  [path, token],
+  threshold: 10,
+  timeout_sec: 120,
+  match_exception: fn
+    %RuntimeError{} -> true
+    _ -> false
+  end
+)
+```
+
+Likewise, `match_return` can be used to designate what return values increment the trip counter. This option is a function that is called with the return value of the function passed to `call/3`. If it returns `true`, the trip counter will be incremented. Otherwise, it will not.
+
+```elixir
+ExBreak.call(
+  &do_get/2,
+  [path, token],
+  timeout_sec: 120,
+  match_return: fn
+    {:error, :service_unavailable} -> true
+    _ -> false
+  end
+)
+```
+
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be
-installed by adding `ex_break` to your list of dependencies in `mix.exs`:
+If [available in Hex](https://hex.pm/docs/publish), the package can be installed by adding `ex_break` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -111,7 +139,4 @@ This module is an [`Agent`](https://hexdocs.pm/elixir/Agent.html) which stores i
 │  ExBreak.Breaker  │  │  ExBreak.Breaker  │  │  ExBreak.Breaker  │
 └───────────────────┘  └───────────────────┘  └───────────────────┘</code></pre></details>
 
-Documentation can be generated with
-[ExDoc](https://github.com/elixir-lang/ex_doc) and published on
-[HexDocs](https://hexdocs.pm). Once published, the docs can be found at
-[https://hexdocs.pm/ex_break](https://hexdocs.pm/ex_break).
+Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc) and published on [HexDocs](https://hexdocs.pm). Once published, the docs can be found at [https://hexdocs.pm/ex_break](https://hexdocs.pm/ex_break).
