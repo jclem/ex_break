@@ -47,27 +47,35 @@ end
 
 ## Architecture
 
-### ExBreak.Application
+When a call `ExBreak.call/3` happens, the `ExBreak` module asks the `ExBreak.Registry` to get an `ExBreak.Breaker` state agent for the function passed to `call/3`. If an agent already exists, the registry returns it. Otherwise, it starts a new one using `ExBreak.BreakerSupervisor` and monitors it.
 
-This module is an `Application` which will start when you include `ex_break` in your application's dependencies. Its only responsibility is to start the `ExBreak.Supervisor`.
+If the breaker has already been tripped and the tripped state has not expired, the function passed to `call/3` is never called and the value `{:error, :circuit_breaker_tripped}` is returned, instead.
 
-### ExBreak.Supervisor
+If, however, the breaker has not been tripped (or its tripped state has expired), the function passed to `call/3` is called. If an exception is raised when calling the function, or if the return value of the function matches the pattern `{:error, _}`, a counter in the breaker's internal state is incremented, and either the exception is re-raised or the return value is returned.
 
-This is a supervisor which starts `ExBreak.DynamicSupervisor` and `ExBreak.Registry`.
+If the counter in the breaker's internal state meets a configured threshold, the breaker is marked as "tripped", and subsequent calls to `call/3` with the same function will return `{:error, :circuit_breaker_tripped}` immediately until the tripped state expires once again.
 
-### ExBreak.DynamicSupervisor
+### [ExBreak.Application](lib/ex_break/application.ex)
 
-This module is a `DynamicSupervisor` that dynamically supervises `ExBreak.Breaker` agents on demand as they're needed.
+This module is an [`Application`](https://hexdocs.pm/elixir/Application.html) which will start when you include `ex_break` in your application's dependencies. Its only responsibility is to start the `ExBreak.Supervisor`.
 
-### ExBreak.Registry
+### [ExBreak.Supervisor](lib/ex_break/supervisor.ex)
+
+This is a [`Supervisor](https://hexdocs.pm/elixir/Supervisor.html) which starts `ExBreak.DynamicSupervisor` and `ExBreak.Registry`.
+
+### [ExBreak.BreakerSupervisor](lib/ex_break/supervisor.ex#L10)
+
+This module is a [`DynamicSupervisor`](https://hexdocs.pm/elixir/DynamicSupervisor.html) that dynamically supervises `ExBreak.Breaker` agents on demand as they're needed.
+
+### [ExBreak.Registry](lib/ex_break/registry.ex)
 
 This module is a registry of `ExBreak.Breaker` agents. When a call to `ExBreak.call/3` happens, the registry finds or creates the `ExBreak.Breaker` registered for the given function call and returns it to the `ExBreak` module for use.
 
 When an `ExBreak.Breaker` process exits, it is de-registered.
 
-### ExBreak.Breaker
+### [ExBreak.Breaker](lib/ex_break/breaker.ex)
 
-This module is an `Agent` which stores internal state about an individual circuit breaker.
+This module is an [`Agent`](https://hexdocs.pm/elixir/Agent.html) which stores internal state about an individual circuit breaker.
 
 <details><summary>Architecture Diagram</summary>
 
@@ -91,7 +99,7 @@ This module is an `Agent` which stores internal state about an individual circui
                      ▼                                          ▼
        ╔═══════════════════════════╗              ╔═══════════════════════════╗
        ║                           ║░             ║                           ║░
-       ║ ExBreak.DynamicSupervisor ║░             ║     ExBreak.Registry      ║░
+       ║ ExBreak.BreakerSupervisor ║░             ║     ExBreak.Registry      ║░
        ║                           ║░             ║                           ║░
        ╚═══════════════════════════╝░             ╚═══════════════════════════╝░
         ░░░░░░░░░░░░░│░░░░░░░░░░░░░░░              ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
