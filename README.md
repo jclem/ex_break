@@ -61,7 +61,7 @@ This module is an [`Application`](https://hexdocs.pm/elixir/Application.html) wh
 
 ### [ExBreak.Supervisor](lib/ex_break/supervisor.ex)
 
-This is a [`Supervisor](https://hexdocs.pm/elixir/Supervisor.html) which starts `ExBreak.DynamicSupervisor` and `ExBreak.Registry`.
+This is a [`Supervisor`](https://hexdocs.pm/elixir/Supervisor.html) which starts `ExBreak.DynamicSupervisor` and `ExBreak.Registry`.
 
 ### [ExBreak.BreakerSupervisor](lib/ex_break/supervisor.ex#L10)
 
