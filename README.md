@@ -83,25 +83,25 @@ If, however, the breaker has not been tripped (or its tripped state has expired)
 
 If the counter in the breaker's internal state meets a configured threshold, the breaker is marked as "tripped", and subsequent calls to `call/3` with the same function will return `{:error, :circuit_breaker_tripped}` immediately until the tripped state expires once again.
 
-### [ExBreak.Application](lib/ex_break/application.ex)
+### [ExBreak.Application](https://github.com/jclem/ex_break/blob/master/lib/ex_break/application.ex)
 
 This module is an [`Application`](https://hexdocs.pm/elixir/Application.html) which will start when you include `ex_break` in your application's dependencies. Its only responsibility is to start the `ExBreak.Supervisor`.
 
-### [ExBreak.Supervisor](lib/ex_break/supervisor.ex)
+### [ExBreak.Supervisor](https://github.com/jclem/ex_break/blob/master/lib/ex_break/supervisor.ex)
 
 This is a [`Supervisor`](https://hexdocs.pm/elixir/Supervisor.html) which starts `ExBreak.DynamicSupervisor` and `ExBreak.Registry`.
 
-### [ExBreak.BreakerSupervisor](lib/ex_break/supervisor.ex#L10)
+### [ExBreak.BreakerSupervisor](https://github.com/jclem/ex_break/blob/master/lib/ex_break/supervisor.ex#L10)
 
 This module is a [`DynamicSupervisor`](https://hexdocs.pm/elixir/DynamicSupervisor.html) that dynamically supervises `ExBreak.Breaker` agents on demand as they're needed.
 
-### [ExBreak.Registry](lib/ex_break/registry.ex)
+### [ExBreak.Registry](https://github.com/jclem/ex_break/blob/master/lib/ex_break/registry.ex)
 
 This module is a registry of `ExBreak.Breaker` agents. When a call to `ExBreak.call/3` happens, the registry finds or creates the `ExBreak.Breaker` registered for the given function call and returns it to the `ExBreak` module for use.
 
 When an `ExBreak.Breaker` process exits, it is de-registered.
 
-### [ExBreak.Breaker](lib/ex_break/breaker.ex)
+### [ExBreak.Breaker](https://github.com/jclem/ex_break/blob/master/lib/ex_break/breaker.ex)
 
 This module is an [`Agent`](https://hexdocs.pm/elixir/Agent.html) which stores internal state about an individual circuit breaker.
 
