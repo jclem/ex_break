@@ -84,6 +84,8 @@ end
 
 ## Architecture
 
+![](https://github.com/jclem/ex_break/blob/master/architecture.png)
+
 When a call `ExBreak.call/3` happens, the `ExBreak` module asks the `ExBreak.Registry` to get an `ExBreak.Breaker` state agent for the function passed to `call/3`. If an agent already exists, the registry returns it. Otherwise, it starts a new one using `ExBreak.BreakerSupervisor` and monitors it.
 
 If the breaker has already been tripped and the tripped state has not expired, the function passed to `call/3` is never called and the value `{:error, :circuit_breaker_tripped}` is returned, instead.
@@ -113,39 +115,5 @@ When an `ExBreak.Breaker` process exits, it is de-registered.
 ### [ExBreak.Breaker](https://github.com/jclem/ex_break/blob/master/lib/ex_break/breaker.ex)
 
 This module is an [`Agent`](https://hexdocs.pm/elixir/Agent.html) which stores internal state about an individual circuit breaker.
-
-<details><summary>Architecture Diagram</summary>
-
-<pre><code>                     ╔═══════════════════════════╗
-                     ║                           ║░
-                     ║    ExBreak.Application    ║░
-                     ║                           ║░
-                     ╚═══════════════════════════╝░
-                      ░░░░░░░░░░░░░│░░░░░░░░░░░░░░░
-                                   │
-                                   ▼
-                     ╔═══════════════════════════╗
-                     ║                           ║░
-                     ║    ExBreak.Supervisor     ║░
-                     ║                           ║░
-                     ╚═══════════════════════════╝░
-                      ░░░░░░░░░░░░░│░░░░░░░░░░░░░░░
-                                   │
-                     ┌─────────────┴────────────────────────────┐
-                     │                                          │
-                     ▼                                          ▼
-       ╔═══════════════════════════╗              ╔═══════════════════════════╗
-       ║                           ║░             ║                           ║░
-       ║ ExBreak.BreakerSupervisor ║░             ║     ExBreak.Registry      ║░
-       ║                           ║░             ║                           ║░
-       ╚═══════════════════════════╝░             ╚═══════════════════════════╝░
-        ░░░░░░░░░░░░░│░░░░░░░░░░░░░░░              ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-                     │
-          ┌──────────┴───────────┬──────────────────────┐
-          │                      │                      │
-          ▼                      ▼                      ▼
-┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
-│  ExBreak.Breaker  │  │  ExBreak.Breaker  │  │  ExBreak.Breaker  │
-└───────────────────┘  └───────────────────┘  └───────────────────┘</code></pre></details>
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc) and published on [HexDocs](https://hexdocs.pm). Once published, the docs can be found at [https://hexdocs.pm/ex_break](https://hexdocs.pm/ex_break).
