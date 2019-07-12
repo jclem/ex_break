@@ -1,7 +1,7 @@
 defmodule ExBreak.MixProject do
   use Mix.Project
 
-  @version "0.0.6"
+  @version "0.0.7"
   @github_url "https://github.com/jclem/ex_break"
 
   def project do
