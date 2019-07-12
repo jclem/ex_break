@@ -10,6 +10,7 @@ defmodule ExBreak do
           | {:threshold, pos_integer}
           | {:match_exception, (any -> boolean)}
           | {:match_return, (any -> boolean)}
+          | {:on_trip, (Breaker.t() -> any)}
   @type opts :: [opt]
 
   @default_opts [timeout_sec: 60 * 15, threshold: 10]
