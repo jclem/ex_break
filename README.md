@@ -84,7 +84,7 @@ end
 
 ## Architecture
 
-![](https://github.com/jclem/ex_break/blob/master/architecture.png)
+![](https://raw.githubusercontent.com/jclem/ex_break/master/architecture.png)
 
 When a call `ExBreak.call/3` happens, the `ExBreak` module asks the `ExBreak.Registry` to get an `ExBreak.Breaker` state agent for the function passed to `call/3`. If an agent already exists, the registry returns it. Otherwise, it starts a new one using `ExBreak.BreakerSupervisor` and monitors it.
 
