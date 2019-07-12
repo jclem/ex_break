@@ -26,6 +26,12 @@ defmodule ExBreak.BreakerTest do
       assert breaker.tripped
       assert breaker.tripped_at
     end
+
+    test "calls on_trip when tripped", %{breaker: pid} do
+      self_pid = self()
+      Breaker.increment(pid, 0, fn breaker -> send(self_pid, breaker) end)
+      assert_receive %Breaker{break_count: 1, tripped: true}
+    end
   end
 
   describe ".is_tripped/2" do

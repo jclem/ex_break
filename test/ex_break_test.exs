@@ -22,6 +22,17 @@ defmodule ExBreakTest do
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
     end
 
+    test "calls on_trip on trip", %{opts: opts} do
+      self_pid = self()
+      opts = Keyword.put(opts, :on_trip, fn breaker -> send(self_pid, breaker) end)
+
+      fun = fn ret -> ret end
+      assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
+      assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}
+
+      assert_receive %ExBreak.Breaker{break_count: 2, tripped: true}
+    end
+
     test "returns a breaker error when a breaker is tripped", %{opts: opts} do
       fun = fn ret -> ret end
       assert ExBreak.call(fun, [{:error, :fun_error}], opts) == {:error, :fun_error}

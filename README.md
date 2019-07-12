@@ -38,8 +38,6 @@ The `match_exception` option is a function that will be called with the exceptio
 ExBreak.call(
   &do_get/2,
   [path, token],
-  threshold: 10,
-  timeout_sec: 120,
   match_exception: fn
     %RuntimeError{} -> true
     _ -> false
@@ -53,10 +51,21 @@ Likewise, `match_return` can be used to designate what return values increment t
 ExBreak.call(
   &do_get/2,
   [path, token],
-  timeout_sec: 120,
   match_return: fn
     {:error, :service_unavailable} -> true
     _ -> false
+  end
+)
+```
+
+If you need to do some sort of alerting when a breaker trips, you can use the `on_trip` option, which is a function that will receive the tripped breaker as its argument. This function is called via [`spawn_link/1`](https://hexdocs.pm/elixir/Kernel.html#spawn_link/1) in the breaker's process.
+
+```elixir
+ExBreak.call(
+  &do_get/2,
+  [path, token],
+  on_trip: fn breaker ->
+    Logger.error("Breaker tripped after #{breaker.break_count} breaks")
   end
 )
 ```

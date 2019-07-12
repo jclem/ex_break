@@ -45,6 +45,8 @@ defmodule ExBreak do
   - `match_return` (defaults to return `true` when matching `{:error, _}`) A
   function called on the return value of the function. If it returns `true`,
   the breaker trip count is incremented.
+  - `on_trip` (defaults to `nil`) A function called with the tripped breaker
+  as an argument when the breaker was tripped
 
   ## Example
 
@@ -142,7 +144,7 @@ defmodule ExBreak do
   end
 
   defp increment_breaker(fun, opts) do
-    lookup(fun, &Breaker.increment(&1, opts[:threshold]))
+    lookup(fun, &Breaker.increment(&1, opts[:threshold], opts[:on_trip]))
   end
 
   defp reset_breaker(fun) do

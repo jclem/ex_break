@@ -9,6 +9,7 @@ defmodule ExBreak.Breaker do
   - `break_count` The number of breaks that have occurred
   - `tripped` Whether the circuit breaker is tripped
   - `tripped_at` The time at which the circuit breaker was tripped (or `nil`, if un-tripped)
+  - `on_trip` A function called when the breaker trips
   """
   @type t :: %__MODULE__{
           break_count: non_neg_integer,
@@ -47,13 +48,21 @@ defmodule ExBreak.Breaker do
       iex> ExBreak.Breaker.is_tripped(pid, 60)
       false
   """
-  @spec increment(pid, pos_integer) :: :ok
-  def increment(pid, threshold) do
+  @spec increment(pid, pos_integer, (t -> any) | nil) :: :ok
+  def increment(pid, threshold, on_trip \\ nil) do
     Agent.update(pid, fn breaker ->
       break_count = breaker.break_count + 1
       tripped = break_count >= threshold
       tripped_at = if tripped, do: DateTime.utc_now()
-      Map.merge(breaker, %{break_count: break_count, tripped: tripped, tripped_at: tripped_at})
+
+      breaker =
+        Map.merge(breaker, %{break_count: break_count, tripped: tripped, tripped_at: tripped_at})
+
+      if tripped && on_trip do
+        spawn_link(fn -> on_trip.(breaker) end)
+      end
+
+      breaker
     end)
   end
 
