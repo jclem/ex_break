@@ -2,7 +2,7 @@
 
 ExBreak is a circuit breaker implementation for Elixir.
 
-When making function calls that may fail, you may find that you want to stop making those calls for a period of time after an error threshold is hit. This package provides a way to do that.
+When making function calls (typically to an external service) that may fail, you may find that you want to stop making those calls for a period of time after an error threshold is hit. This package provides a way to do that.
 
 ```elixir
 defmodule GitHub do
